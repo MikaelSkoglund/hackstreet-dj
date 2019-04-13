@@ -55,7 +55,7 @@ const setState = newState => {
     horizontalLabel.innerHTML = effectText[state.effect].x + " 👉";
 };
 
-const socket = io("http://178.62.77.148/socket", {
+const socket = io("http://178.62.77.148", {
   query: { djId: sessionStorage.getItem("djId") }
 });
 
