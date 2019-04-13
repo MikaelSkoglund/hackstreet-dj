@@ -4,11 +4,14 @@ import io from "socket.io-client";
 
 window.onclick = () => {
   const audioCtx = new AudioContext();
+  window.reverbjs.extend(audioCtx);
   const bufferSource = audioCtx.createBufferSource();
+
+  //Filter 1
   const filterNode = audioCtx.createBiquadFilter();
   const delayNode = audioCtx.createDelay(5.0);
   const delayGainNode = audioCtx.createGain();
-  delayNode.delayTime.value = 148 / 60 / 2;
+  delayNode.delayTime.value = 148 / 60 / 4;
 
   bufferSource.connect(filterNode);
 
@@ -17,8 +20,18 @@ window.onclick = () => {
   delayGainNode.connect(delayNode);
   filterNode.frequency.value = audioCtx.sampleRate / 2;
 
+  filterNode.type = "highpass";
+
   delayNode.connect(audioCtx.destination);
-  console.log(delayNode);
+
+  // Filter 2
+  const reverbUrl = "http://reverbjs.org/Library/AbernyteGrainSilo.m4a";
+  const reverbNode = audioCtx.createReverbFromUrl(reverbUrl, function() {
+    reverbNode.connect(audioCtx.destination);
+  });
+  const reverbGainNode = audioCtx.createGain();
+  bufferSource.connect(reverbGainNode);
+  reverbGainNode.connect(reverbNode);
 
   const fileLoc = "/hackstreet-2.mp3";
   fetch(fileLoc)
@@ -51,13 +64,14 @@ window.onclick = () => {
 
   socket.on("coordinate_update", data => {
     const frequency = Math.floor(
-      (data.filterDelay.x * audioCtx.sampleRate) / 2
+      (data.filterDelay.x * audioCtx.sampleRate) / 4
     );
 
     const delay = data.filterDelay.y;
 
     filterNode.frequency.setValueAtTime(frequency, audioCtx.currentTime);
     delayGainNode.gain.setValueAtTime(delay, audioCtx.currentTime);
+    reverbGainNode.gain.setValueAtTime(data.reverb.x, audioCtx.currentTime);
   });
 
   const canvas = document.querySelector("#surface");

@@ -43,7 +43,6 @@ io.on("connection", function(socket) {
   // request comes in
   // if we know client
   // then dont increment this thing
-  ++numUsers;
 
   let djId = socket.handshake.query.djId;
   let currentDj = findDjById(socket.handshake.query.djId);
@@ -58,6 +57,7 @@ io.on("connection", function(socket) {
     djId = socket.id;
   }
 
+  socket.handshake.query.djId = djId;
   socket.emit("dj_assigned", {
     name: currentDj,
     djId
@@ -81,12 +81,8 @@ io.on("connection", function(socket) {
 
   // when the user disconnects.. perform this
   socket.on("disconnect", function() {
-    --numUsers;
-
-    // echo globally that this client has left
-    socket.broadcast.emit("user left", {
-      username: socket.username,
-      numUsers: numUsers
-    });
+    console.log(socket.handshake.query.djId);
+    const currentDj = findDjById(socket.handshake.query.djId);
+    djs[currentDj] = null;
   });
 });
