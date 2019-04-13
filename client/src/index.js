@@ -3,14 +3,25 @@ import "./styles/main.scss";
 import io from "socket.io-client";
 import pixi from "pixi.js";
 
-const debugEl = document.getElementById("debug");
+const verticalLabel = document.getElementById("verticalLabel");
+const horizontalLabel = document.getElementById("horizontalLabel");
 const canvas = document.getElementById("surface");
+
+const video = document.querySelector(".video");
+console.log(video);
+if (window.innerWidth > window.innerHeight) {
+  video.width = window.innerWidth;
+  video.height = (window.innerWidth * 9) / 16;
+} else {
+  video.height = window.innerHeight;
+  video.width = (window.innerHeight * 16) / 9;
+}
 
 const app = new PIXI.Application({
   view: canvas,
   width: window.innerWidth,
   height: window.innerHeight,
-  backgroundColor: 0x1099bb
+  transparent: true
 });
 document.body.appendChild(app.view);
 
@@ -19,16 +30,22 @@ document.body.appendChild(app.view);
 
 const state = {
   dj: null,
+  effect: null,
   effects: { filterDelay: null, reverb: null }
+};
+
+const effectText = {
+  filterDelay: {
+    x: "Filter",
+    y: "Delay"
+  }
 };
 
 const setState = newState => {
   Object.assign(state, newState);
-  debugEl.innerText = `
-    \n
-    Name: ${state.currentDj}
-    Effect: ${state.effect}
-  `;
+
+  verticalLabel.innerHTML = "👈 " + effectText[state.effect].y;
+  horizontalLabel.innerHTML = effectText[state.effect].x + " 👉";
 };
 
 const socket = io("http://localhost:8000", {
@@ -44,7 +61,7 @@ socket.on("dj_assigned", data => {
   });
 });
 
-canvas.addEventListener("mousemove", e => {
+window.addEventListener("mousemove", e => {
   const y = e.clientY / canvas.clientHeight;
   const x = e.clientX / canvas.clientWidth;
 
@@ -55,7 +72,7 @@ canvas.addEventListener("mousemove", e => {
   });
 });
 
-canvas.addEventListener("touchmove", e => {
+window.addEventListener("touchmove", e => {
   const y = e.touches[0].clientY / canvas.clientHeight;
   const x = e.touches[0].clientX / canvas.clientWidth;
 
@@ -66,7 +83,7 @@ canvas.addEventListener("touchmove", e => {
   });
 });
 
-canvas.addEventListener("touchend", e => {
+window.addEventListener("touchend", e => {
   socket.emit("coordinate_update", {
     djId: sessionStorage.getItem("djId"),
     x: 0,
