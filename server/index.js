@@ -84,6 +84,10 @@ io.on("connection", function(socket) {
   socket.on("disconnect", function() {
     console.log(socket.handshake.query.djId);
     const currentDj = findDjById(socket.handshake.query.djId);
+    effectsState[djToEffect[currentDj]] = {
+      x: 0,
+      y: 0
+    };
     djs[currentDj] = null;
   });
 });
