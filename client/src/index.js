@@ -48,6 +48,8 @@ const effectText = {
 const setState = newState => {
   Object.assign(state, newState);
 
+  if (!effectText[state.effect]) return;
+
   if (effectText[state.effect].y)
     verticalLabel.innerHTML = "👈 " + effectText[state.effect].y;
 
@@ -107,7 +109,7 @@ window.onclick = () => {
   const filterNode = audioCtx.createBiquadFilter();
   const delayNode = audioCtx.createDelay(5.0);
   const delayGainNode = audioCtx.createGain();
-  delayNode.delayTime.value = 140 / 60 / 4;
+  delayNode.delayTime.value = 139 / 60 / 4;
 
   bufferSource.connect(filterNode);
 
