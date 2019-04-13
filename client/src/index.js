@@ -1,6 +1,78 @@
 import "./styles/main.scss";
 
 import io from "socket.io-client";
+import pixi from "pixi.js";
+
+const debugEl = document.getElementById("debug");
+const canvas = document.getElementById("surface");
+
+const app = new PIXI.Application({
+  view: canvas,
+  width: window.innerWidth,
+  height: window.innerHeight,
+  backgroundColor: 0x1099bb
+});
+document.body.appendChild(app.view);
+
+// canvas.width = window.innerWidth;
+// canvas.height = window.innerHeight;
+
+const state = {
+  dj: null,
+  effects: { filterDelay: null, reverb: null }
+};
+
+const setState = newState => {
+  Object.assign(state, newState);
+  debugEl.innerText = `
+    \n
+    Name: ${state.currentDj}
+    Effect: ${state.effect}
+  `;
+};
+
+const socket = io("http://localhost:8000", {
+  query: { djId: sessionStorage.getItem("djId") }
+});
+
+socket.on("dj_assigned", data => {
+  sessionStorage.setItem("djId", data.djId);
+  console.log(data);
+  setState({
+    currentDj: data.currentDj,
+    effect: data.effect
+  });
+});
+
+canvas.addEventListener("mousemove", e => {
+  const y = e.clientY / canvas.clientHeight;
+  const x = e.clientX / canvas.clientWidth;
+
+  socket.emit("coordinate_update", {
+    djId: sessionStorage.getItem("djId"),
+    x,
+    y
+  });
+});
+
+canvas.addEventListener("touchmove", e => {
+  const y = e.touches[0].clientY / canvas.clientHeight;
+  const x = e.touches[0].clientX / canvas.clientWidth;
+
+  socket.emit("coordinate_update", {
+    djId: sessionStorage.getItem("djId"),
+    x,
+    y
+  });
+});
+
+canvas.addEventListener("touchend", e => {
+  socket.emit("coordinate_update", {
+    djId: sessionStorage.getItem("djId"),
+    x: 0,
+    y: 0
+  });
+});
 
 window.onclick = () => {
   const audioCtx = new AudioContext();
@@ -18,7 +90,7 @@ window.onclick = () => {
   filterNode.connect(audioCtx.destination);
   filterNode.connect(delayGainNode);
   delayGainNode.connect(delayNode);
-  filterNode.frequency.value = audioCtx.sampleRate / 2;
+  filterNode.frequency.value = 0;
 
   filterNode.type = "highpass";
 
@@ -31,6 +103,7 @@ window.onclick = () => {
   });
   const reverbGainNode = audioCtx.createGain();
   bufferSource.connect(reverbGainNode);
+  reverbGainNode.gain.value = 0;
   reverbGainNode.connect(reverbNode);
 
   const fileLoc = "/hackstreet-2.mp3";
@@ -43,26 +116,13 @@ window.onclick = () => {
       })
     );
 
-  const socket = io("http://localhost:8000", {
-    query: { djId: sessionStorage.getItem("djId") }
-  });
-
   socket.on("connect", () => {});
 
-  const state = {
-    dj: null
-  };
-
-  const setState = newState => {
-    Object.assign(state, newState);
-    console.log(newState);
-  };
-
-  socket.on("dj_assigned", data => {
-    sessionStorage.setItem("djId", data.djId);
-  });
-
   socket.on("coordinate_update", data => {
+    setState({
+      effects: data
+    });
+
     const frequency = Math.floor(
       (data.filterDelay.x * audioCtx.sampleRate) / 4
     );
@@ -73,17 +133,39 @@ window.onclick = () => {
     delayGainNode.gain.setValueAtTime(delay, audioCtx.currentTime);
     reverbGainNode.gain.setValueAtTime(data.reverb.x, audioCtx.currentTime);
   });
+};
 
-  const canvas = document.querySelector("#surface");
+const sprites = Object.keys(state.effects).map(key => {
+  const effect = state.effects[key];
+  return createSprite(key);
+});
 
-  canvas.addEventListener("mousemove", e => {
-    const y = e.clientY / canvas.clientHeight;
-    const x = e.clientX / canvas.clientWidth;
-
-    socket.emit("coordinate_update", {
-      djId: sessionStorage.getItem("djId"),
-      x,
-      y
-    });
+const render = () => {
+  sprites.forEach(sprite => {
+    const effect = state.effects[sprite.name];
+    if (effect) {
+      sprite.x = effect.x * canvas.clientWidth;
+      sprite.y = effect.y * canvas.clientHeight;
+    }
   });
 };
+
+app.ticker.add(render);
+
+function createSprite(name) {
+  const sprite = new PIXI.Graphics();
+
+  console.log(sprite);
+
+  sprite.name = name;
+  sprite.beginFill(0xde3249, 1);
+  sprite.drawCircle(0, 0, 20);
+  sprite.endFill();
+
+  // sprite.anchor.set(0.5);
+  // sprite.scale.set(1);
+
+  app.stage.addChild(sprite);
+
+  return sprite;
+}

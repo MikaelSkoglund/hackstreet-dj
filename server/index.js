@@ -59,7 +59,8 @@ io.on("connection", function(socket) {
 
   socket.handshake.query.djId = djId;
   socket.emit("dj_assigned", {
-    name: currentDj,
+    currentDj: currentDj,
+    effect: djToEffect[currentDj],
     djId
   });
 
