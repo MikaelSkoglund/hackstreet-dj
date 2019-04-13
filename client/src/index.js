@@ -8,13 +8,13 @@ const horizontalLabel = document.getElementById("horizontalLabel");
 const canvas = document.getElementById("surface");
 
 const video = document.querySelector(".video");
-console.log(video);
+
 if (window.innerWidth > window.innerHeight) {
   video.width = window.innerWidth;
   video.height = (window.innerWidth * 9) / 16;
 } else {
   video.height = window.innerHeight;
-  video.width = (window.innerHeight * 16) / 9;
+  video.width = (16 / 9) * window.innerHeight;
 }
 
 const app = new PIXI.Application({
@@ -38,17 +38,24 @@ const effectText = {
   filterDelay: {
     x: "Filter",
     y: "Delay"
+  },
+  reverb: {
+    x: "Reverb",
+    y: null
   }
 };
 
 const setState = newState => {
   Object.assign(state, newState);
 
-  verticalLabel.innerHTML = "👈 " + effectText[state.effect].y;
-  horizontalLabel.innerHTML = effectText[state.effect].x + " 👉";
+  if (effectText[state.effect].y)
+    verticalLabel.innerHTML = "👈 " + effectText[state.effect].y;
+
+  if (effectText[state.effect].x)
+    horizontalLabel.innerHTML = effectText[state.effect].x + " 👉";
 };
 
-const socket = io("http://localhost:8000", {
+const socket = io("http://178.62.77.148/socket", {
   query: { djId: sessionStorage.getItem("djId") }
 });
 
@@ -100,7 +107,7 @@ window.onclick = () => {
   const filterNode = audioCtx.createBiquadFilter();
   const delayNode = audioCtx.createDelay(5.0);
   const delayGainNode = audioCtx.createGain();
-  delayNode.delayTime.value = 148 / 60 / 4;
+  delayNode.delayTime.value = 140 / 60 / 4;
 
   bufferSource.connect(filterNode);
 
@@ -119,11 +126,11 @@ window.onclick = () => {
     reverbNode.connect(audioCtx.destination);
   });
   const reverbGainNode = audioCtx.createGain();
-  bufferSource.connect(reverbGainNode);
+  filterNode.connect(reverbGainNode);
   reverbGainNode.gain.value = 0;
   reverbGainNode.connect(reverbNode);
 
-  const fileLoc = "/hackstreet-2.mp3";
+  const fileLoc = "/hackstreet-3.mp3";
   fetch(fileLoc)
     .then(response => response.arrayBuffer())
     .then(buffer =>
